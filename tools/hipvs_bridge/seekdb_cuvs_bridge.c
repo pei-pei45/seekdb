@@ -10,6 +10,7 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct {
   cuvsResources_t        res;
@@ -63,6 +64,9 @@ int seekdb_cuvs_search(void* handle, const float* query, long nq, long topk,
     nt=qt; nt.dl_tensor.data=nd; nt.dl_tensor.dtype.code=kDLUInt; nt.dl_tensor.shape=nsh;
     dt=qt; dt.dl_tensor.data=dd; dt.dl_tensor.dtype.code=kDLFloat; dt.dl_tensor.shape=dsh;
     if (cuvsCagraSearchParamsCreate(&sp) != CUVS_SUCCESS) { rc=14; goto done; }
+    /* itopk_size bounds how many neighbours the search can return; its default
+     * (64) silently caps `limit k` at 64. Raise it to the requested topk. */
+    if (sp->itopk_size < (size_t)topk) { sp->itopk_size = (size_t)topk; }
     cuvsFilter f; f.type=NO_FILTER; f.addr=(uintptr_t)0;
     if (cuvsCagraSearch(h->res, sp, h->idx, &qt, &nt, &dt, f) != CUVS_SUCCESS) { rc=15; goto done; }
     if (cudaMemcpy(out_ids, nd, sizeof(unsigned)*nq*topk, cudaMemcpyDefault) != cudaSuccess) { rc=16; goto done; }
